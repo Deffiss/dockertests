@@ -30,7 +30,21 @@ namespace DockerTest.ConsoleTest
             Console.WriteLine($"{containerName} container has been run: {containerId}");
         }
 
-        private static async Task<(string ContainerName, string ContainerId, string IPAddress, IDictionary<ushort, ushort> Ports)> RunContainer(DockerClient docker, string imageName, string tag, string containerName, params string[] env)
+        private static string GetDockerDefaultUrl()
+        {
+            var dockerHostVar = Environment.GetEnvironmentVariable("DOCKER_HOST");
+            var defaultDockerUrl =
+                !string.IsNullOrEmpty(dockerHostVar)
+                ? dockerHostVar
+                : !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? "unix:///var/run/docker.sock"
+                    : "npipe://./pipe/docker_engine";
+
+            return defaultDockerUrl;
+        }
+
+        private static async Task<(string ContainerName, string ContainerId, string IPAddress, IDictionary<ushort, ushort> Ports)>
+            RunContainer(DockerClient docker, string imageName, string tag, string containerName, params string[] env)
         {
             Console.WriteLine($"Running {imageName}");
 
@@ -110,18 +124,6 @@ namespace DockerTest.ConsoleTest
             Console.WriteLine($"Container IPAddress: {startedContainer.NetworkSettings.Networks.FirstOrDefault().Key} - {startedContainer.NetworkSettings.Networks.FirstOrDefault().Value.IPAddress}");
 
             return (containerName, container.ID, startedContainer.NetworkSettings.Networks.FirstOrDefault().Value.IPAddress, startedContainer.Ports.ToDictionary(p => p.PrivatePort, p => p.PublicPort));
-        }
-
-        private static string GetDockerDefaultUrl()
-        {
-            var dockerHostVar = Environment.GetEnvironmentVariable("DOCKER_HOST");
-            var defaultDockerUrl =
-                !string.IsNullOrEmpty(dockerHostVar)
-                ? dockerHostVar
-                : !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                    ? "unix:///var/run/docker.sock"
-                    : "npipe://./pipe/docker_engine";
-            return defaultDockerUrl;
         }
     }
 }

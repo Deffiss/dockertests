@@ -40,7 +40,7 @@ namespace DockerTest.Api.Tests
             Console.WriteLine("Docker containers started");
 
             // Set connection string as environment variable. This will override appsettings.json value.
-            Environment.SetEnvironmentVariable("ConnectionStrings__PersonsContext", GetTestDatabaseConnectionString(useContainerIpAddresses, _containers[0]));
+            Environment.SetEnvironmentVariable("ConnectionStrings__PersonsContext", GetTestDatabaseConnectionString(_containers[0], useContainerIpAddresses));
 
             // Run in-memory Test host
             var startupAssembly = typeof(Startup).GetTypeInfo().Assembly;
@@ -110,7 +110,7 @@ namespace DockerTest.Api.Tests
             throw new Exception($"Solution root could not be located using application root {applicationBasePath}.");
         }
 
-        private async Task<IEnumerable<TestContainer>> PrepareDockerEnvironment(bool useContainerIpAddresses)
+        private async Task<IEnumerable<TestContainer>> PrepareDockerEnvironment(bool useContainerIpAddresses = false)
         {
             var containers = new List<TestContainer>
             {
@@ -124,7 +124,7 @@ namespace DockerTest.Api.Tests
             return containers;
         }
 
-        private string GetTestDatabaseConnectionString(bool useContainerIpAddresses, TestContainer container) =>
+        private string GetTestDatabaseConnectionString(TestContainer container, bool useContainerIpAddresses = false) =>
             $"Data Source={(useContainerIpAddresses ? container.IpAddress : "localhost")}, {(useContainerIpAddresses ? 1433 : container.Ports[1433])}; Initial Catalog=PersonsTestDB; UID=sa; pwd={MsSqlSaPassword}; Application Name=Persons API; MultipleActiveResultSets=True;";
     }
 }
