@@ -19,41 +19,64 @@ namespace DockerTest.Api.Tests
         private const string SolutionName = "DockerTest.sln";
 
         private const string ContainerNameSuffix = "show_tests";
+
         private const string MsSqlSaPassword = "SecurePassword123";
 
         private readonly TestServer _server;
 
-        private readonly List<TestContainer> _containers;
+        private readonly TestContainer[] _containers;
+
+        public HttpClient Client { get; }
 
         public IntegrationFixture()
         {
-            Console.WriteLine("Start docker containers");
+            // 1. Prepare all the containers with required software.
+            _containers = CreateDockerEnvironment();
 
-            // This is workaround in case if this is Docker-in-Docker (Gitlab Environment);
-            var useContainerIpAddresses = bool.Parse(Environment.GetEnvironmentVariable("USE_CONTAINER_IPADDRESSES") ?? bool.FalseString);
+            // 2. Set connection string as environment variable. This will override appsettings.json value.
+            Environment.SetEnvironmentVariable("ConnectionStrings__PersonsContext", GetTestDatabaseConnectionString(_containers[0]));
 
-            Console.WriteLine($"Use container IPAddresses: {useContainerIpAddresses}");
+            // 3. Run in-memory test server to host our API.
+            _server = CreateTestServer();
 
-            // Now prepare all the containers.
-            _containers = PrepareDockerEnvironment(useContainerIpAddresses).Result.ToList();
+            // 4. Arrange some testing data in our database.
+            ArrangeTestData();
 
-            Console.WriteLine("Docker containers started");
+            // 5. Create HTTP Client pointed to in-memory hosted API to use it in our tests.
+            Client = _server.CreateClient();
+            Client.BaseAddress = new Uri("http://localhost");
+        }
 
-            // Set connection string as environment variable. This will override appsettings.json value.
-            Environment.SetEnvironmentVariable("ConnectionStrings__PersonsContext", GetTestDatabaseConnectionString(_containers[0], useContainerIpAddresses));
+        private TestContainer[] CreateDockerEnvironment(bool useContainerIpAddresses = false)
+        {
+            var containers = new TestContainer[]
+            {
+                new MsSqlTestContainer(MsSqlSaPassword, "mssql_" + ContainerNameSuffix, useContainerIpAddresses, Console.WriteLine),
+                // Here we can have more containers
+            };
 
+            var tasks = containers.Select(container => container.Run()).ToArray();
+
+            Task.WhenAll(tasks).Wait();
+
+            return containers;
+        }
+
+        private TestServer CreateTestServer()
+        {
             // Run in-memory Test host
             var startupAssembly = typeof(Startup).GetTypeInfo().Assembly;
             var contentRoot = GetProjectPath("", startupAssembly);
 
             var builder = WebHost.CreateDefaultBuilder().UseContentRoot(contentRoot).UseEnvironment("Test").UseStartup<Startup>();
 
-            _server = new TestServer(builder);
+            return new TestServer(builder);
+        }
 
-            // It's time to call ArrangeData methods to prepare our tests.
+        private void ArrangeTestData()
+        {
             using (var scope = _server.Host.Services.CreateScope())
             {
-                ServiceProvider = scope.ServiceProvider;
                 var tests = GetType().Assembly.GetTypes().Where(t => t.Name.EndsWith("tests", StringComparison.OrdinalIgnoreCase));
 
                 var testDataFunctions = tests.Select(t => t.GetMethod("ArrangeData"));
@@ -62,16 +85,7 @@ namespace DockerTest.Api.Tests
                     ((Task)testDataFunction.Invoke(null, new[] { scope.ServiceProvider })).Wait();
                 }
             }
-
-            ServiceProvider = _server.Host.Services;
-
-            Client = _server.CreateClient();
-            Client.BaseAddress = new Uri("http://localhost");
         }
-
-        public HttpClient Client { get; }
-
-        public IServiceProvider ServiceProvider { get; }
 
         public void Dispose()
         {
@@ -108,20 +122,6 @@ namespace DockerTest.Api.Tests
             while (directoryInfo.Parent != null);
 
             throw new Exception($"Solution root could not be located using application root {applicationBasePath}.");
-        }
-
-        private async Task<IEnumerable<TestContainer>> PrepareDockerEnvironment(bool useContainerIpAddresses = false)
-        {
-            var containers = new List<TestContainer>
-            {
-                new MsSqlTestContainer(MsSqlSaPassword, "mssql_" + ContainerNameSuffix, useContainerIpAddresses, Console.WriteLine)
-            };
-
-            var tasks = containers.Select(container => container.Run()).ToArray();
-
-            await Task.WhenAll(tasks);
-
-            return containers;
         }
 
         private string GetTestDatabaseConnectionString(TestContainer container, bool useContainerIpAddresses = false) =>

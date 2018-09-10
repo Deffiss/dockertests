@@ -27,7 +27,8 @@ namespace DockerTest.Api.Tests.IntegrationTests
             var person = new PersonContract { FirstName = "Name4", LastName = "LastName4", Age = 35 };
 
             // Act
-            var postResult = await Client.PostAsync("api/persons", new StringContent(JsonConvert.SerializeObject(person), Encoding.UTF8, "application/json"));
+            var postResult = await Client.PostAsync("api/persons",
+                new StringContent(JsonConvert.SerializeObject(person), Encoding.UTF8, "application/json"));
 
             // Assert
             Assert.Equal(HttpStatusCode.Created, postResult.StatusCode);
@@ -41,6 +42,8 @@ namespace DockerTest.Api.Tests.IntegrationTests
             Assert.True(getResult.IsSuccessStatusCode);
 
             var receivedPerson = await getResult.Content.ReadAsAsync<PersonContract>();
+
+            // Make sure that we received the same data as sent.
             AssertSamePerson(person, receivedPerson);
         }
 
