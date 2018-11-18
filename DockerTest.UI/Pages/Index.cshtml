@@ -1,0 +1,48 @@
+﻿@page
+@model DockerTest.UI.Pages.IndexModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Index</title>
+</head>
+<body>
+
+<table class="table" border="1">
+    <thead style="text-align: left;">
+        <tr>
+            <th width="300px">
+                @Html.DisplayNameFor(model => model.Person[0].Name)
+            </th>
+            <th width="70px">
+                @Html.DisplayNameFor(model => model.Person[0].Age)
+            </th>
+            <th width="300px">
+                @Html.DisplayNameFor(model => model.Person[0].Address)
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model.Person) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Name)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Age)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Address)
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+</body>
+</html>

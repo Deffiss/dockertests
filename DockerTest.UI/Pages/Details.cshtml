@@ -1,0 +1,46 @@
+﻿@page
+@model DockerTest.UI.Pages.DetailsModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Details</title>
+</head>
+<body>
+
+<div>
+    <h4>Person</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.Person.Name)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Person.Name)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Person.Age)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Person.Age)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Person.Address)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Person.Address)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-page="./Edit" asp-route-id="@Model.Person.Id">Edit</a> |
+    <a asp-page="./Index">Back to List</a>
+</div>
+</body>
+</html>
